@@ -1,0 +1,25 @@
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Go workspace & build artifacts
+*.out
+
+# Environment & IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Python virtual environment & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetSentinel AI - Real-time Network Intrusion Detection</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for High-performance Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #070913;
+            --panel-bg: rgba(13, 17, 33, 0.65);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --color-benign: #10b981;
+            --color-ddos: #ef4444;
+            --color-portscan: #f59e0b;
+            --color-bruteforce: #a855f7;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --glow-cyan: 0 0 15px rgba(6, 182, 212, 0.4);
+            --glow-red: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 40%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* Layout Grid */
+        .container {
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            flex-grow: 1;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            margin-bottom: 8px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-section i {
+            font-size: 28px;
+            color: var(--accent-cyan);
+            text-shadow: var(--glow-cyan);
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        .logo-section h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--color-benign);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--color-benign);
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        /* Metric Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-blue);
+        }
+
+        .metric-card.cyan::before { background: var(--accent-cyan); }
+        .metric-card.green::before { background: var(--color-benign); }
+        .metric-card.red::before { background: var(--color-ddos); }
+        .metric-card.orange::before { background: var(--color-portscan); }
+
+        .metric-info h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .metric-icon {
+            font-size: 32px;
+            opacity: 0.2;
+            transition: opacity 0.3s;
+        }
+
+        .metric-card:hover .metric-icon {
+            opacity: 0.5;
+        }
+
+        /* Main Analytics Section */
+        .analytics-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .analytics-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .panel-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-header h2 i {
+            color: var(--accent-cyan);
+        }
+
+        .chart-container {
+            padding: 20px;
+            height: 320px;
+            position: relative;
+        }
+
+        /* Threat Alert Feed */
+        .alert-feed {
+            max-height: 320px;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .alert-item {
+            background: rgba(239, 68, 68, 0.05);
+            border-left: 4px solid var(--color-ddos);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            border-top: 1px solid rgba(239, 68, 68, 0.1);
+            border-right: 1px solid rgba(239, 68, 68, 0.1);
+            border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+        }
+
+        .alert-item.DDoS {
+            border-left-color: var(--color-ddos);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .alert-item.PortScan {
+            border-left-color: var(--color-portscan);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .alert-item.BruteForce {
+            border-left-color: var(--color-bruteforce);
+            background: rgba(168, 85, 247, 0.05);
+        }
+
+        .alert-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .alert-title {
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .alert-title i {
+            animation: pulse-glow 1s infinite alternate;
+        }
+
+        .alert-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .alert-details {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+            color: #cbd5e1;
+        }
+
+        /* Flow Telemetry Table */
+        .flow-panel {
+            flex-grow: 1;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            padding: 16px 20px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Threat Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.benign {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--color-benign);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge.ddos {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--color-ddos);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+        }
+
+        .badge.portscan {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--color-portscan);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .badge.bruteforce {
+            background: rgba(168, 85, 247, 0.1);
+            color: var(--color-bruteforce);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        /* Animations */
+        @keyframes pulse-glow {
+            0% { text-shadow: 0 0 10px rgba(6, 182, 212, 0.2); }
+            50% { text-shadow: 0 0 20px rgba(6, 182, 212, 0.6); }
+            100% { text-shadow: 0 0 10px rgba(6, 182, 212, 0.2); }
+        }
+
+        @keyframes pulse-dot {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 14px var(--color-benign); }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        @keyframes slide-in {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Scrollbar customizing */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+            margin-top: auto;
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Dashboard Header -->
+        <header class="glass-panel">
+            <div class="logo-section">
+                <i class="fa-solid fa-shield-halved"></i>
+                <div>
+                    <h1>NetSentinel AI</h1>
+                    <span style="font-size: 11px; color: var(--accent-cyan); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">AIOps Telemetry Dashboard</span>
+                </div>
+            </div>
+            <div class="system-status">
+                <div class="status-dot"></div>
+                <span id="conn-status">WS MONITORING ACTIVE</span>
+            </div>
+        </header>
+
+        <!-- Metric Scoreboard -->
+        <div class="metrics-grid">
+            <div class="glass-panel metric-card cyan">
+                <div class="metric-info">
+                    <h3>Packets Processed</h3>
+                    <div id="metric-packets" class="metric-value">0</div>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-box"></i></div>
+            </div>
+            
+            <div class="glass-panel metric-card green">
+                <div class="metric-info">
+                    <h3>Active Sessions</h3>
+                    <div id="metric-flows" class="metric-value">0</div>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-network-wired"></i></div>
+            </div>
+
+            <div class="glass-panel metric-card red">
+                <div class="metric-info">
+                    <h3>Intrusions Flagged</h3>
+                    <div id="metric-threats" class="metric-value">0</div>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+
+            <div class="glass-panel metric-card orange">
+                <div class="metric-info">
+                    <h3>Anomalous Ratio</h3>
+                    <div id="metric-ratio" class="metric-value">0.0%</div>
+                </div>
+                <div class="metric-icon"><i class="fa-solid fa-chart-pie"></i></div>
+            </div>
+        </div>
+
+        <!-- Charts and Incident Feed -->
+        <div class="analytics-section">
+            <!-- Dynamic Line Chart -->
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <h2><i class="fa-solid fa-chart-line"></i> Live Flow Telemetry (Packets/Sec)</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="liveChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Incident Alert Log -->
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <h2 style="color: var(--color-ddos);"><i class="fa-solid fa-bell"></i> Threat Radar (Live)</h2>
+                </div>
+                <div id="alert-feed" class="alert-feed">
+                    <div class="alert-item benign" style="border-left-color: var(--color-benign); background: rgba(16, 185, 129, 0.03); border-top: 1px solid rgba(16, 185, 129, 0.05); border-right: 1px solid rgba(16, 185, 129, 0.05); border-bottom: 1px solid rgba(16, 185, 129, 0.05);">
+                        <div class="alert-title" style="color: var(--color-benign);">
+                            <i class="fa-solid fa-circle-check"></i> System Healthy
+                        </div>
+                        <div class="alert-desc">Waiting for network telemetry anomalies...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Connection Flow Table -->
+        <div class="glass-panel flow-panel">
+            <div class="panel-header">
+                <h2><i class="fa-solid fa-list-check"></i> Network Flow Activity Table (Real-time Model Inference)</h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Source Address</th>
+                            <th>Destination Address</th>
+                            <th>Proto</th>
+                            <th>Pkt Rate</th>
+                            <th>Bytes Transfer</th>
+                            <th>SYN/ACK/FIN Flags</th>
+                            <th>Duration (s)</th>
+                            <th>AI Classification</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flow-table-body">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-secondary); padding: 40px 0;">
+                                <i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> Awaiting flow data stream...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Web Footer -->
+    <footer>
+        <p>NetSentinel AI &copy; 2026. Built with Golang, Scapy and Random Forest. Designed for Cisco Systems B.Tech ICT Internship Portfolio.</p>
+    </footer>
+
+    <!-- App Logic Script -->
+    <script src="app.js"></script>
+</body>
+</html>
